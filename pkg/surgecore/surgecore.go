@@ -3,6 +3,7 @@ package surgecore
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/google/uuid"
@@ -43,7 +44,7 @@ type AddRequest struct {
 type EventType int
 
 const (
-	EventProgress  EventType = iota
+	EventProgress EventType = iota
 	EventComplete
 	EventError
 	EventPaused
@@ -111,6 +112,9 @@ func New(cfg Config) (Downloader, error) {
 	}
 
 	// Init the SQLite state DB at the caller-supplied path.
+	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
+		return nil, fmt.Errorf("surgecore: failed to create state dir: %w", err)
+	}
 	state.Configure(cfg.StateDir)
 
 	// Internal progress channel — pool writes here, lifecycle manager reads here.
