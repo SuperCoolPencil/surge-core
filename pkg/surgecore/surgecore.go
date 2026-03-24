@@ -4,11 +4,14 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/surge-downloader/surge-core/internal/config"
 	"github.com/surge-downloader/surge-core/internal/download"
+	"github.com/surge-downloader/surge-core/internal/engine/events"
 	"github.com/surge-downloader/surge-core/internal/engine/state"
 	"github.com/surge-downloader/surge-core/internal/engine/types"
 	"github.com/surge-downloader/surge-core/internal/processing"
@@ -97,6 +100,8 @@ type downloader struct {
 	mgr  *processing.LifecycleManager
 	cfg  Config
 	ch   chan any // internal progress channel
+	mu   sync.Mutex
+	subs map[string]chan any // per-download subscribers
 }
 
 // New creates a ready-to-use Downloader.
@@ -115,10 +120,13 @@ func New(cfg Config) (Downloader, error) {
 	if err := os.MkdirAll(cfg.StateDir, 0o755); err != nil {
 		return nil, fmt.Errorf("surgecore: failed to create state dir: %w", err)
 	}
-	state.Configure(cfg.StateDir)
+	state.Configure(filepath.Join(cfg.StateDir, "surge.db"))
 
-	// Internal progress channel — pool writes here, lifecycle manager reads here.
+	// progressCh is written by the pool.
+	// lifecycleCh feeds the lifecycle manager (persistence, file finalization).
+	// Both are fed by a single broadcast goroutine so the pool only writes once.
 	progressCh := make(chan any, 256)
+	lifecycleCh := make(chan any, 256)
 
 	pool := download.NewWorkerPool(progressCh, cfg.MaxWorkers)
 
@@ -194,32 +202,67 @@ func New(cfg Config) (Downloader, error) {
 	}
 
 	// Start the lifecycle event worker (persists state, handles file finalization).
-	go mgr.StartEventWorker(progressCh)
+	go mgr.StartEventWorker(lifecycleCh)
 
-	return &downloader{
+	d := &downloader{
 		pool: pool,
 		mgr:  mgr,
 		cfg:  cfg,
 		ch:   progressCh,
-	}, nil
+		subs: make(map[string]chan any),
+	}
+
+	// Fan-out: send every pool event to the lifecycle manager and all per-download subscribers.
+	go func() {
+		for raw := range progressCh {
+			// Feed lifecycle manager.
+			select {
+			case lifecycleCh <- raw:
+			default:
+			}
+			// Feed per-download subscribers.
+			d.mu.Lock()
+			for _, sub := range d.subs {
+				select {
+				case sub <- raw:
+				default:
+				}
+			}
+			d.mu.Unlock()
+		}
+	}()
+
+	return d, nil
 }
 
 // Get is the convenience method — queue + stream events until done.
+// It taps the shared progress channel and filters events by ID.
 func (d *downloader) Get(ctx context.Context, req AddRequest) (<-chan Event, error) {
 	id, err := d.Add(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
+	// Subscribe before the download starts so we don't miss early events.
+	sub := make(chan any, 256)
+	d.mu.Lock()
+	d.subs[string(id)] = sub
+	d.mu.Unlock()
+
 	out := make(chan Event, 32)
 	go func() {
 		defer close(out)
+		defer func() {
+			d.mu.Lock()
+			delete(d.subs, string(id))
+			d.mu.Unlock()
+		}()
 		for {
 			select {
 			case <-ctx.Done():
 				out <- Event{Type: EventCancelled, ID: id}
 				return
-			case raw, ok := <-d.ch:
+			case raw, ok := <-sub:
 				if !ok {
 					return
 				}
@@ -287,31 +330,59 @@ func (d *downloader) Close() error {
 // translateEvent converts a raw pool event into a public Event.
 // Returns (event, isDone) — isDone signals the caller to stop listening.
 func translateEvent(id string, raw any) (*Event, bool) {
-	type hasID interface{ GetDownloadID() string }
-
 	switch m := raw.(type) {
-	case interface {
-		GetDownloadID() string
-		GetDownloaded() int64
-		GetTotal() int64
-		GetSpeed() float64
-	}:
-		if m.GetDownloadID() != id {
+	case events.ProgressMsg:
+		if m.DownloadID != id {
 			return nil, false
 		}
 		return &Event{
 			Type: EventProgress,
 			ID:   DownloadID(id),
 			Progress: &ProgressInfo{
-				BytesDownloaded: m.GetDownloaded(),
-				TotalBytes:      m.GetTotal(),
-				SpeedMBps:       m.GetSpeed(),
+				BytesDownloaded: m.Downloaded,
+				TotalBytes:      m.Total,
+				SpeedMBps:       m.Speed,
 			},
 		}, false
 
+	case events.DownloadCompleteMsg:
+		if m.DownloadID != id {
+			return nil, false
+		}
+		// Recover the final path from the state DB.
+		path := ""
+		if entry, _ := state.GetDownload(m.DownloadID); entry != nil {
+			path = entry.DestPath
+		}
+		return &Event{
+			Type: EventComplete,
+			ID:   DownloadID(id),
+			Path: path,
+		}, true
+
+	case events.DownloadErrorMsg:
+		if m.DownloadID != id {
+			return nil, false
+		}
+		return &Event{
+			Type:  EventError,
+			ID:    DownloadID(id),
+			Error: m.Err,
+		}, true
+
+	case events.DownloadPausedMsg:
+		if m.DownloadID != id {
+			return nil, false
+		}
+		return &Event{Type: EventPaused, ID: DownloadID(id)}, false
+
+	case events.DownloadResumedMsg:
+		if m.DownloadID != id {
+			return nil, false
+		}
+		return &Event{Type: EventResumed, ID: DownloadID(id)}, false
+
 	default:
-		// Use type names via fmt for event types that don't have a common interface yet.
-		// This is intentionally simple — extend as needed.
 		return nil, false
 	}
 }
