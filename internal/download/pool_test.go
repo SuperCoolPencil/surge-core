@@ -552,16 +552,16 @@ func TestWorkerPool_Resume_UsesResolvedStatePathAndFilename(t *testing.T) {
 	}
 
 	pool.mu.RLock()
-	ad := pool.downloads["test-id"]
+	cfg, ok := pool.queued["test-id"]
 	pool.mu.RUnlock()
-	if ad == nil {
-		t.Fatal("expected active download to remain tracked")
+	if !ok {
+		t.Fatal("expected resumed download to be queued")
 	}
-	if ad.config.DestPath != "/tmp/final-name.bin" {
-		t.Fatalf("DestPath not propagated from state: got=%q", ad.config.DestPath)
+	if cfg.DestPath != "/tmp/final-name.bin" {
+		t.Fatalf("DestPath not propagated from state: got=%q", cfg.DestPath)
 	}
-	if ad.config.Filename != "final-name.bin" {
-		t.Fatalf("Filename not propagated from state: got=%q", ad.config.Filename)
+	if cfg.Filename != "final-name.bin" {
+		t.Fatalf("Filename not propagated from state: got=%q", cfg.Filename)
 	}
 
 	select {

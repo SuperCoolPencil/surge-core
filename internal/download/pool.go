@@ -329,6 +329,12 @@ func (p *WorkerPool) Resume(downloadID string) bool {
 
 	// Re-queue the download
 	ad.config.IsResume = true
+
+	// Remove from downloads before adding to queued to prevent race conditions
+	p.mu.Lock()
+	delete(p.downloads, downloadID)
+	p.mu.Unlock()
+
 	p.Add(ad.config)
 
 	// Send resume message
@@ -549,7 +555,6 @@ func (p *WorkerPool) trySendProgress(msg any) {
 func (p *WorkerPool) GracefulShutdown() {
 	// Persist queued downloads first so they don't disappear on process shutdown.
 	// These entries may not have started yet, so they do not have a .surge state snapshot.
-	p.persistQueuedForShutdown()
 
 	p.PauseAll()
 
@@ -598,9 +603,4 @@ func (p *WorkerPool) GracefulShutdown() {
 	// so worker goroutines exit their range loop.
 	close(p.progressDone)
 	close(p.taskChan)
-}
-
-func (p *WorkerPool) persistQueuedForShutdown() {
-	// No-op: queued items are persisted when Add emits DownloadQueuedMsg,
-	// so shutdown only needs to drain active workers.
 }

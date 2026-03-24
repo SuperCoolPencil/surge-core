@@ -19,7 +19,7 @@ import (
 type NotifyFunc func(title, message string)
 
 // AddDownloadFunc is the lifecycle's handoff into the engine-facing queue layer.
-type AddDownloadFunc func(string, string, string, []string, map[string]string, bool, int64, bool) (string, error)
+type AddDownloadFunc func(string, string, string, []string, map[string]string, int64, bool) (string, error)
 
 // AddDownloadWithIDFunc preserves caller-chosen ids when a remote/UI layer already owns them.
 type AddDownloadWithIDFunc func(string, string, string, []string, map[string]string, string, int64, bool) (string, error)
@@ -34,8 +34,6 @@ type LifecycleManager struct {
 	addFunc             AddDownloadFunc
 	addWithIDFunc       AddDownloadWithIDFunc
 	isNameActive        IsNameActiveFunc
-	engineHooks         EngineHooks
-	hooksMu             sync.RWMutex
 	Notify              NotifyFunc
 }
 
@@ -90,21 +88,6 @@ func NewLifecycleManager(addFunc AddDownloadFunc, addWithIDFunc AddDownloadWithI
 		addWithIDFunc:       addWithIDFunc,
 		isNameActive:        activeCheck,
 	}
-}
-
-// SetEngineHooks injects dependencies the manager needs to interact with the broader system
-// (like the download worker pool or the event system) without causing cyclic dependency graphs.
-func (mgr *LifecycleManager) SetEngineHooks(hooks EngineHooks) {
-	mgr.hooksMu.Lock()
-	defer mgr.hooksMu.Unlock()
-	mgr.engineHooks = hooks
-}
-
-// getEngineHooks safely returns the current engine hooks.
-func (mgr *LifecycleManager) getEngineHooks() EngineHooks {
-	mgr.hooksMu.RLock()
-	defer mgr.hooksMu.RUnlock()
-	return mgr.engineHooks
 }
 
 // GetSettings reloads disk-backed routing rules opportunistically so a long-lived
@@ -184,7 +167,6 @@ func (mgr *LifecycleManager) Enqueue(ctx context.Context, req *DownloadRequest) 
 			finalFilename,
 			req.Mirrors,
 			req.Headers,
-			req.IsExplicitCategory,
 			probe.FileSize,
 			probe.SupportsRange,
 		)

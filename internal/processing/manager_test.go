@@ -45,7 +45,7 @@ func TestLifecycleManager_Enqueue_PrecreatesWorkingFileBeforeDispatch(t *testing
 	expectedID := "enqueue-id"
 
 	mgr := newLifecycleManagerForTest()
-	mgr.addFunc = func(url, path, filename string, _ []string, _ map[string]string, explicit bool, totalSize int64, supportsRange bool) (string, error) {
+	mgr.addFunc = func(url, path, filename string, _ []string, _ map[string]string, totalSize int64, supportsRange bool) (string, error) {
 		if url != server.URL {
 			t.Fatalf("url = %q, want %q", url, server.URL)
 		}
@@ -55,9 +55,7 @@ func TestLifecycleManager_Enqueue_PrecreatesWorkingFileBeforeDispatch(t *testing
 		if filename != expectedFile {
 			t.Fatalf("filename = %q, want %q", filename, expectedFile)
 		}
-		if !explicit {
-			t.Fatal("expected explicit category flag to be preserved")
-		}
+
 		if totalSize != 1234 {
 			t.Fatalf("totalSize = %d, want 1234", totalSize)
 		}
@@ -161,7 +159,7 @@ func TestLifecycleManager_Enqueue_RemovesWorkingFileOnDispatchError(t *testing.T
 	expectedErr := errors.New("dispatch failed")
 
 	mgr := newLifecycleManagerForTest()
-	mgr.addFunc = func(string, string, string, []string, map[string]string, bool, int64, bool) (string, error) {
+	mgr.addFunc = func(string, string, string, []string, map[string]string, int64, bool) (string, error) {
 		return "", expectedErr
 	}
 
@@ -210,14 +208,12 @@ func TestLifecycleManager_Enqueue_RetriesWhenWorkingFileReservationCollides(t *t
 
 	mgr := newLifecycleManagerForTest()
 	var dispatchedFilename string
-	mgr.addFunc = func(url, path, filename string, _ []string, _ map[string]string, explicit bool, totalSize int64, supportsRange bool) (string, error) {
+	mgr.addFunc = func(url, path, filename string, _ []string, _ map[string]string, totalSize int64, supportsRange bool) (string, error) {
 		dispatchedFilename = filename
 		if path != tempDir {
 			t.Fatalf("path = %q, want %q", path, tempDir)
 		}
-		if explicit != true {
-			t.Fatal("expected explicit category flag to be preserved")
-		}
+
 		if totalSize != 1024 || !supportsRange {
 			t.Fatalf("unexpected probe metadata: total=%d range=%v", totalSize, supportsRange)
 		}
@@ -376,7 +372,7 @@ func TestLifecycleManager_Enqueue_FailsAfterReservationAttemptLimit(t *testing.T
 	}
 
 	mgr := newLifecycleManagerForTest()
-	mgr.addFunc = func(string, string, string, []string, map[string]string, bool, int64, bool) (string, error) {
+	mgr.addFunc = func(string, string, string, []string, map[string]string, int64, bool) (string, error) {
 		t.Fatal("dispatch should not run when reservation never succeeds")
 		return "", nil
 	}
@@ -462,7 +458,7 @@ func TestLifecycleManager_Enqueue_ContextCancellationDuringProbe(t *testing.T) {
 	defer server.Close()
 
 	mgr := newLifecycleManagerForTest()
-	mgr.addFunc = func(string, string, string, []string, map[string]string, bool, int64, bool) (string, error) {
+	mgr.addFunc = func(string, string, string, []string, map[string]string, int64, bool) (string, error) {
 		t.Fatal("dispatch should not run when probe fails")
 		return "", nil
 	}
@@ -563,7 +559,7 @@ func TestLifecycleManager_Enqueue_ContextCancellationBeforeReservation(t *testin
 	defer server.Close()
 
 	mgr := newLifecycleManagerForTest()
-	mgr.addFunc = func(string, string, string, []string, map[string]string, bool, int64, bool) (string, error) {
+	mgr.addFunc = func(string, string, string, []string, map[string]string, int64, bool) (string, error) {
 		t.Fatal("dispatch should not run when context is canceled before reservation")
 		return "", nil
 	}

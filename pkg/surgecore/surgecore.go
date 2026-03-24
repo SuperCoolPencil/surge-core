@@ -8,13 +8,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/SuperCoolPencil/surge-core/internal/config"
 	"github.com/SuperCoolPencil/surge-core/internal/download"
 	"github.com/SuperCoolPencil/surge-core/internal/engine/events"
 	"github.com/SuperCoolPencil/surge-core/internal/engine/state"
 	"github.com/SuperCoolPencil/surge-core/internal/engine/types"
 	"github.com/SuperCoolPencil/surge-core/internal/processing"
+	"github.com/google/uuid"
 )
 
 // DownloadID uniquely identifies a managed download.
@@ -99,7 +99,6 @@ type downloader struct {
 	pool *download.WorkerPool
 	mgr  *processing.LifecycleManager
 	cfg  Config
-	ch   chan any // internal progress channel
 	mu   sync.Mutex
 	subs map[string]chan any // per-download subscribers
 }
@@ -131,7 +130,7 @@ func New(cfg Config) (Downloader, error) {
 	pool := download.NewWorkerPool(progressCh, cfg.MaxWorkers)
 
 	// addFunc hands a resolved download into the worker pool.
-	addFunc := func(url, destPath, filename string, mirrors []string, headers map[string]string, isExplicitCategory bool, fileSize int64, supportsRange bool) (string, error) {
+	addFunc := func(url, destPath, filename string, mirrors []string, headers map[string]string, fileSize int64, supportsRange bool) (string, error) {
 		id := uuid.New().String()
 		settings, _ := config.LoadSettings()
 		var proxyURL string
@@ -208,24 +207,38 @@ func New(cfg Config) (Downloader, error) {
 		pool: pool,
 		mgr:  mgr,
 		cfg:  cfg,
-		ch:   progressCh,
 		subs: make(map[string]chan any),
 	}
 
 	// Fan-out: send every pool event to the lifecycle manager and all per-download subscribers.
 	go func() {
 		for raw := range progressCh {
-			// Feed lifecycle manager.
-			select {
-			case lifecycleCh <- raw:
-			default:
+			isTerminal := false
+			switch raw.(type) {
+			case events.DownloadCompleteMsg, events.DownloadErrorMsg, events.DownloadPausedMsg:
+				isTerminal = true
 			}
+
+			// Feed lifecycle manager.
+			if isTerminal {
+				lifecycleCh <- raw
+			} else {
+				select {
+				case lifecycleCh <- raw:
+				default:
+				}
+			}
+
 			// Feed per-download subscribers.
 			d.mu.Lock()
 			for _, sub := range d.subs {
-				select {
-				case sub <- raw:
-				default:
+				if isTerminal {
+					sub <- raw
+				} else {
+					select {
+					case sub <- raw:
+					default:
+					}
 				}
 			}
 			d.mu.Unlock()
@@ -375,6 +388,19 @@ func translateEvent(id string, raw any) (*Event, bool) {
 			return nil, false
 		}
 		return &Event{Type: EventPaused, ID: DownloadID(id)}, false
+
+	case events.BatchProgressMsg:
+		var latest *events.ProgressMsg
+		for _, pm := range m {
+			if pm.DownloadID == id {
+				pmCopy := pm
+				latest = &pmCopy
+			}
+		}
+		if latest != nil {
+			return translateEvent(id, *latest)
+		}
+		return nil, false
 
 	case events.DownloadResumedMsg:
 		if m.DownloadID != id {

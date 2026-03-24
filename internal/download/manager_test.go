@@ -604,21 +604,6 @@ func TestProbeResult_ZeroValues(t *testing.T) {
 	}
 }
 
-func TestDownload_BuildsConfig(t *testing.T) {
-	// This test verifies that the Download wrapper correctly builds a config
-	// We dont test the full download
-
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel() // Cancel immediately
-
-	err := Download(ctx, "http://example.com/file", "/tmp/output", nil, "test-id")
-
-	// Should fail because context is cancelled
-	if err == nil {
-		t.Log("Download returned nil error with cancelled context - this may be acceptable")
-	}
-}
-
 func TestUniqueFilePath_EmptyFilename(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "surge-test-*")
 	if err != nil {

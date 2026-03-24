@@ -226,35 +226,7 @@ func TUIDownload(ctx context.Context, cfg *types.DownloadConfig) error {
 			utils.Debug("Download canceled cleanly")
 			return nil
 		}
-
-		// Send error event
-		if cfg.ProgressCh != nil {
-			safeSendProgress(cfg.ProgressCh, events.DownloadErrorMsg{
-				DownloadID: cfg.ID,
-				Filename:   finalFilename,
-				DestPath:   finalDestPath,
-				Err:        downloadErr,
-			})
-		}
 	}
 
 	return downloadErr
-}
-
-// Download is the CLI entry point (non-TUI) - convenience wrapper
-func Download(ctx context.Context, url string, outPath string, progressCh chan<- any, id string) error {
-	cfg := types.DownloadConfig{
-		URL:        url,
-		OutputPath: outPath,
-		ID:         id,
-		ProgressCh: progressCh,
-		State:      nil,
-	}
-	// Default runtime config
-	cfg.Runtime = &types.RuntimeConfig{
-		MaxConnectionsPerHost: types.PerHostMax,
-		MinChunkSize:          types.MinChunk,
-		WorkerBufferSize:      types.WorkerBuffer,
-	}
-	return TUIDownload(ctx, &cfg)
 }

@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/SuperCoolPencil/surge-core/internal/engine/types"
+	"github.com/google/uuid"
 )
 
 func setupTestDB(t *testing.T) string {
