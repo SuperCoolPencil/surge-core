@@ -211,25 +211,18 @@ func New(cfg Config) (Downloader, error) {
 	}
 
 	// Fan-out: send every pool event to the lifecycle manager and all per-download subscribers.
+	// Internal channel for downstream subscribers decoupled from lifecycle events.
+	subsCh := make(chan any, 256)
+
+	// Subscriber fan-out goroutine.
 	go func() {
-		for raw := range progressCh {
+		for raw := range subsCh {
 			isTerminal := false
 			switch raw.(type) {
 			case events.DownloadCompleteMsg, events.DownloadErrorMsg, events.DownloadPausedMsg:
 				isTerminal = true
 			}
 
-			// Feed lifecycle manager.
-			if isTerminal {
-				lifecycleCh <- raw
-			} else {
-				select {
-				case lifecycleCh <- raw:
-				default:
-				}
-			}
-
-			// Feed per-download subscribers.
 			d.mu.Lock()
 			for _, sub := range d.subs {
 				if isTerminal {
@@ -242,6 +235,34 @@ func New(cfg Config) (Downloader, error) {
 				}
 			}
 			d.mu.Unlock()
+		}
+	}()
+
+	// Primary broadcast goroutine (never blocks).
+	go func() {
+		for raw := range progressCh {
+			isTerminal := false
+			switch raw.(type) {
+			case events.DownloadCompleteMsg, events.DownloadErrorMsg, events.DownloadPausedMsg:
+				isTerminal = true
+			}
+
+			if isTerminal {
+				go func(ev any) { lifecycleCh <- ev }(raw)
+				go func(ev any) { subsCh <- ev }(raw)
+			} else {
+				// Feed lifecycle manager
+				select {
+				case lifecycleCh <- raw:
+				default:
+				}
+
+				// Feed subscribers
+				select {
+				case subsCh <- raw:
+				default:
+				}
+			}
 		}
 	}()
 
@@ -394,10 +415,14 @@ func translateEvent(id string, raw any) (*Event, bool) {
 		for _, pm := range m {
 			if pm.DownloadID == id {
 				pmCopy := pm
-				latest = &pmCopy
+				if latest == nil || pmCopy.Downloaded > latest.Downloaded {
+					latest = &pmCopy
+				}
 			}
 		}
 		if latest != nil {
+			// Recurse into translateEvent. This is safe because *latest is a single
+			// events.ProgressMsg, which trivially matches and returns an EventProgress.
 			return translateEvent(id, *latest)
 		}
 		return nil, false
