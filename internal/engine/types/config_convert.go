@@ -1,6 +1,6 @@
 package types
 
-import "github.com/surge-downloader/surge-core/internal/config"
+import "github.com/SuperCoolPencil/surge-core/internal/config"
 
 // ConvertRuntimeConfig converts the app-level RuntimeConfig to the engine-level RuntimeConfig.
 func ConvertRuntimeConfig(rc *config.RuntimeConfig) *RuntimeConfig {

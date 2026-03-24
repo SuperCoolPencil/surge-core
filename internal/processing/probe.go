@@ -12,9 +12,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/surge-downloader/surge-core/internal/config"
-	"github.com/surge-downloader/surge-core/internal/engine/types"
-	"github.com/surge-downloader/surge-core/internal/utils"
+	"github.com/SuperCoolPencil/surge-core/internal/config"
+	"github.com/SuperCoolPencil/surge-core/internal/engine/types"
+	"github.com/SuperCoolPencil/surge-core/internal/utils"
 )
 
 var ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +

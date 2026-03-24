@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/surge-downloader/surge-core/pkg/surgecore"
+	"github.com/SuperCoolPencil/surge-core/pkg/surgecore"
 )
 
 func main() {

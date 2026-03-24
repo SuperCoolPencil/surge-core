@@ -1,4 +1,4 @@
-module github.com/surge-downloader/surge-core
+module github.com/SuperCoolPencil/surge-core
 
 go 1.25.0
 

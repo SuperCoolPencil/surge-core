@@ -10,12 +10,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/surge-downloader/surge-core/internal/engine/concurrent"
-	"github.com/surge-downloader/surge-core/internal/engine/events"
-	"github.com/surge-downloader/surge-core/internal/engine/single"
-	"github.com/surge-downloader/surge-core/internal/engine/types"
-	"github.com/surge-downloader/surge-core/internal/processing"
-	"github.com/surge-downloader/surge-core/internal/utils"
+	"github.com/SuperCoolPencil/surge-core/internal/engine/concurrent"
+	"github.com/SuperCoolPencil/surge-core/internal/engine/events"
+	"github.com/SuperCoolPencil/surge-core/internal/engine/single"
+	"github.com/SuperCoolPencil/surge-core/internal/engine/types"
+	"github.com/SuperCoolPencil/surge-core/internal/processing"
+	"github.com/SuperCoolPencil/surge-core/internal/utils"
 )
 
 // safeSendProgress sends msg on ch, recovering from panics caused by sending

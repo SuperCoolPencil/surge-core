@@ -3,7 +3,7 @@ package types_test
 import (
 	"testing"
 
-	"github.com/surge-downloader/surge-core/internal/engine/types"
+	"github.com/SuperCoolPencil/surge-core/internal/engine/types"
 )
 
 func TestChunkAccuracy(t *testing.T) {

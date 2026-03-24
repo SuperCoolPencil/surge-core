@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/surge-downloader/surge-core/internal/engine/events"
-	"github.com/surge-downloader/surge-core/internal/engine/types"
-	"github.com/surge-downloader/surge-core/internal/processing"
-	"github.com/surge-downloader/surge-core/internal/testutil"
+	"github.com/SuperCoolPencil/surge-core/internal/engine/events"
+	"github.com/SuperCoolPencil/surge-core/internal/engine/types"
+	"github.com/SuperCoolPencil/surge-core/internal/processing"
+	"github.com/SuperCoolPencil/surge-core/internal/testutil"
 )
 
 func TestUniqueFilePath(t *testing.T) {

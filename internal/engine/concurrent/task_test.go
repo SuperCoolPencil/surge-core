@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/surge-downloader/surge-core/internal/engine/types"
+	"github.com/SuperCoolPencil/surge-core/internal/engine/types"
 )
 
 func TestActiveTask_RemainingBytes(t *testing.T) {

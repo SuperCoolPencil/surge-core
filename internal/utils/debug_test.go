@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/surge-downloader/surge-core/internal/config"
-	"github.com/surge-downloader/surge-core/internal/utils"
+	"github.com/SuperCoolPencil/surge-core/internal/config"
+	"github.com/SuperCoolPencil/surge-core/internal/utils"
 )
 
 func TestDebug_CreatesLogFile(t *testing.T) {

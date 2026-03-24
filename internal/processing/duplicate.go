@@ -3,9 +3,9 @@ package processing
 import (
 	"strings"
 
-	"github.com/surge-downloader/surge-core/internal/config"
-	"github.com/surge-downloader/surge-core/internal/engine/state"
-	"github.com/surge-downloader/surge-core/internal/engine/types"
+	"github.com/SuperCoolPencil/surge-core/internal/config"
+	"github.com/SuperCoolPencil/surge-core/internal/engine/state"
+	"github.com/SuperCoolPencil/surge-core/internal/engine/types"
 )
 
 // DuplicateResult represents the outcome of a duplicate check

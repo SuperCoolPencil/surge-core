@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/surge-downloader/surge-core/internal/engine/types"
-	"github.com/surge-downloader/surge-core/internal/testutil"
+	"github.com/SuperCoolPencil/surge-core/internal/engine/types"
+	"github.com/SuperCoolPencil/surge-core/internal/testutil"
 )
 
 // TestConcurrentDownloader_CustomHeaders verifies that custom headers from browser

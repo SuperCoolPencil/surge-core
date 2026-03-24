@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/surge-downloader/surge-core/internal/utils"
+	"github.com/SuperCoolPencil/surge-core/internal/utils"
 )
 
 const (

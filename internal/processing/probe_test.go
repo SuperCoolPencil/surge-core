@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/surge-downloader/surge-core/internal/config"
-	"github.com/surge-downloader/surge-core/internal/processing"
+	"github.com/SuperCoolPencil/surge-core/internal/config"
+	"github.com/SuperCoolPencil/surge-core/internal/processing"
 )
 
 func TestProbeServer_UsesConfiguredProxy(t *testing.T) {

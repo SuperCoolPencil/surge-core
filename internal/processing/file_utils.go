@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/surge-downloader/surge-core/internal/config"
-	"github.com/surge-downloader/surge-core/internal/engine/types"
-	"github.com/surge-downloader/surge-core/internal/utils"
+	"github.com/SuperCoolPencil/surge-core/internal/config"
+	"github.com/SuperCoolPencil/surge-core/internal/engine/types"
+	"github.com/SuperCoolPencil/surge-core/internal/utils"
 )
 
 // InferFilenameFromURL is the final naming fallback when neither the user nor

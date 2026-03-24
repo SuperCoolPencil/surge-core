@@ -10,12 +10,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/surge-downloader/surge-core/internal/download"
-	"github.com/surge-downloader/surge-core/internal/engine/state"
-	"github.com/surge-downloader/surge-core/internal/engine/types"
-	"github.com/surge-downloader/surge-core/internal/processing"
-	"github.com/surge-downloader/surge-core/internal/testutil"
-	"github.com/surge-downloader/surge-core/internal/utils"
+	"github.com/SuperCoolPencil/surge-core/internal/download"
+	"github.com/SuperCoolPencil/surge-core/internal/engine/state"
+	"github.com/SuperCoolPencil/surge-core/internal/engine/types"
+	"github.com/SuperCoolPencil/surge-core/internal/processing"
+	"github.com/SuperCoolPencil/surge-core/internal/testutil"
+	"github.com/SuperCoolPencil/surge-core/internal/utils"
 )
 
 func TestIntegration_MirrorResume(t *testing.T) {

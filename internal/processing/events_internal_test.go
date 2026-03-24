@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/surge-downloader/surge-core/internal/config"
-	"github.com/surge-downloader/surge-core/internal/engine/events"
-	"github.com/surge-downloader/surge-core/internal/engine/state"
-	"github.com/surge-downloader/surge-core/internal/engine/types"
-	"github.com/surge-downloader/surge-core/internal/testutil"
+	"github.com/SuperCoolPencil/surge-core/internal/config"
+	"github.com/SuperCoolPencil/surge-core/internal/engine/events"
+	"github.com/SuperCoolPencil/surge-core/internal/engine/state"
+	"github.com/SuperCoolPencil/surge-core/internal/engine/types"
+	"github.com/SuperCoolPencil/surge-core/internal/testutil"
 )
 
 func TestFinalizeCompletedFile_CopiesAcrossDevicesOnEXDEV(t *testing.T) {
