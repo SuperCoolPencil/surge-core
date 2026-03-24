@@ -101,6 +101,7 @@ type downloader struct {
 	cfg  Config
 	mu   sync.Mutex
 	subs map[string]chan any // per-download subscribers
+	done chan struct{}
 }
 
 // New creates a ready-to-use Downloader.
@@ -208,6 +209,7 @@ func New(cfg Config) (Downloader, error) {
 		mgr:  mgr,
 		cfg:  cfg,
 		subs: make(map[string]chan any),
+		done: make(chan struct{}),
 	}
 
 	// Fan-out: send every pool event to the lifecycle manager and all per-download subscribers.
@@ -248,8 +250,20 @@ func New(cfg Config) (Downloader, error) {
 			}
 
 			if isTerminal {
-				go func(ev any) { lifecycleCh <- ev }(raw)
-				go func(ev any) { subsCh <- ev }(raw)
+				go func(ev any) {
+					// Feed lifecycle manager first to preserve enqueue ordering
+					select {
+					case lifecycleCh <- ev:
+					case <-d.done:
+						return
+					}
+					// Then feed subscribers
+					select {
+					case subsCh <- ev:
+					case <-d.done:
+						return
+					}
+				}(raw)
 			} else {
 				// Feed lifecycle manager
 				select {
@@ -357,6 +371,13 @@ func (d *downloader) Cancel(_ context.Context, id DownloadID) error {
 }
 
 func (d *downloader) Close() error {
+	d.mu.Lock()
+	select {
+	case <-d.done:
+	default:
+		close(d.done)
+	}
+	d.mu.Unlock()
 	d.pool.GracefulShutdown()
 	return nil
 }
