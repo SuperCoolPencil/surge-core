@@ -9,7 +9,7 @@ require (
 	github.com/h2non/filetype v1.1.3
 	github.com/stretchr/testify v1.11.1
 	github.com/vfaronov/httpheader v0.1.0
-	modernc.org/sqlite v1.47.0
+	modernc.org/sqlite v1.48.1
 )
 
 require (
